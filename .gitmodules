@@ -1,0 +1,12 @@
+[submodule "security/seccomp-profile"]
+	path = security/seccomp-profile
+	url = https://gist.github.com/eba065cbfaa0d481c159403195b286b4.git
+	branch = master
+[submodule "security/entrypoint"]
+	path = security/entrypoint
+	url = https://gist.github.com/81187306bbdef1b9bc26138a7c8f8bd8.git
+	branch = master
+[submodule "security/user"]
+	path = security/user
+	url = https://gist.github.com/0b8ac70d83ef83747e38cd0224536c2a.git
+	branch = master
