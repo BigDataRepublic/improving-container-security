@@ -1,0 +1,10 @@
+**/.env
+**/.idea
+**/.vscode
+**/.git
+**/.gitattributes
+**/.gitignore
+**/.cache
+**/docker-compose.yml
+**/*.md
+**/node_modules

@@ -1,0 +1,28 @@
+worker_processes        1;
+pid                     ${WORK_DIR}/tmp/nginx.pid;
+
+events {
+  worker_connections    1024;
+}
+
+http {
+  client_body_temp_path ${WORK_DIR}/tmp/client_temp;
+  proxy_temp_path       ${WORK_DIR}/tmp/proxy_temp_path;
+  fastcgi_temp_path     ${WORK_DIR}/tmp/fastcgi_temp;
+  uwsgi_temp_path       ${WORK_DIR}/tmp/uwsgi_temp;
+  scgi_temp_path        ${WORK_DIR}/tmp/scgi_temp;
+  include               mime.types;
+  default_type          application/octet-stream;
+
+  server {
+    listen              4200;
+    server_name         localhost;
+    sendfile            on;
+    index               index.html;
+    root                ${WORK_DIR}/html;
+
+    location / {
+      try_files $uri $uri/ /;
+    }
+  }
+}

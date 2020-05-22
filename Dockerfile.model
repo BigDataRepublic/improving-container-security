@@ -1,0 +1,63 @@
+FROM ubuntu:18.04 AS secured_ubuntu
+
+ENV BASE_WORK_DIR=/home
+ENV WORK_DIR=${BASE_WORK_DIR}/app
+ENV HOME=${WORK_DIR}
+ENV DOCKER_SCRIPTS_DIR=/var/docker_scripts
+
+WORKDIR ${WORK_DIR}
+
+COPY --chown=root:root ./security/docker_entrypoint.sh ./security/add_user_group.sh ${DOCKER_SCRIPTS_DIR}/
+RUN chmod 555 ${DOCKER_SCRIPTS_DIR}/* && \
+    ${DOCKER_SCRIPTS_DIR}/add_user_group.sh && \
+    rm ${DOCKER_SCRIPTS_DIR}/add_user_group.sh && \
+    ln -s ${DOCKER_SCRIPTS_DIR}/docker_entrypoint.sh /usr/local/bin/ && \
+    chown root:root ${BASE_WORK_DIR} && \
+    chmod 775 ${BASE_WORK_DIR} && \
+    mkdir -m 750 -p ${WORK_DIR} && \
+    chown -R dockerapp:dockerapp ${WORK_DIR}
+
+
+FROM secured_ubuntu AS trainer
+
+LABEL description="This container trains a random forest on the iris dataset."
+
+ENV MODEL_DIR=${WORK_DIR}/model
+
+COPY --chown=dockerapp:dockerapp ./training_app/requirements.txt ${WORK_DIR}/
+RUN apt-get update -y && \
+	apt-get install --no-install-recommends -y python-pip python-dev && \
+	pip install -r ${WORK_DIR}/requirements.txt && \
+	rm -rf /var/lib/apt/lists/* && \
+	mkdir -m 750 -p ${MODEL_DIR} && \
+	chown -R dockerapp:dockerapp ${MODEL_DIR}
+
+USER dockerapp
+COPY --chown=dockerapp:dockerapp ./training_app ${WORK_DIR}/
+
+VOLUME [ "${MODEL_DIR}" ]
+ENTRYPOINT [ "docker_entrypoint.sh", "python", "train.py" ]
+
+
+FROM secured_ubuntu AS predictor
+
+LABEL description="This container exposes a fitted random forest model with Flask on the Iris dataset."
+
+ENV MODEL_DIR=${WORK_DIR}/model
+ENV FLASK_APP=${WORK_DIR}/main.py
+
+COPY --chown=dockerapp:dockerapp ./prediction_app/requirements.txt ${WORK_DIR}/
+RUN apt-get update -y && \
+	apt-get install --no-install-recommends -y python-pip python-dev && \
+	pip install -r ${WORK_DIR}/requirements.txt && \
+	rm -rf /var/lib/apt/lists/* && \
+	mkdir -m 750 -p ${MODEL_DIR} && \
+	chown -R dockerapp:dockerapp ${MODEL_DIR}
+
+USER dockerapp
+COPY --chown=dockerapp:dockerapp ./prediction_app ${WORK_DIR}/
+
+VOLUME [ "${MODEL_DIR}" ]
+EXPOSE 5000
+ENTRYPOINT [ "docker_entrypoint.sh", "flask" ]
+CMD [ "run", "--host=0.0.0.0" ]

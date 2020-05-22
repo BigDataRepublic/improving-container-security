@@ -1,0 +1,52 @@
+FROM node:12.16 AS frontend_builder
+
+ENV BASE_WORK_DIR=/home
+ENV WORK_DIR=${BASE_WORK_DIR}/app
+ENV HOME=${WORK_DIR}
+ENV PATH=${WORK_DIR}/node_modules/.bin:$PATH
+
+WORKDIR ${WORK_DIR}
+
+COPY --chown=root:root ./frontend/model-display/package.json ${WORK_DIR}/
+RUN mkdir -m 777 -p ${WORK_DIR} && \
+    npm install && \
+    npm cache clean --force && \
+    rm -rf /tmp/*
+
+COPY  --chown=root:root ./frontend/model-display ${WORK_DIR}/
+RUN ng build --prod --output-path=dist
+
+FROM nginx:mainline AS frontend
+
+LABEL description="This container runs an Angular JS app on 4200 that connects to a REST API on localhost:5000."
+
+ENV BASE_WORK_DIR=/home
+ENV WORK_DIR=${BASE_WORK_DIR}/app
+ENV HOME=${WORK_DIR}
+ENV DOCKER_SCRIPTS_DIR=/var/docker_scripts
+
+WORKDIR ${WORK_DIR}
+
+COPY --chown=root:root ./security/docker_entrypoint.sh ./security/add_user_group.sh ${DOCKER_SCRIPTS_DIR}/
+RUN chmod 555 ${DOCKER_SCRIPTS_DIR}/* && \
+    ${DOCKER_SCRIPTS_DIR}/add_user_group.sh && \
+    rm ${DOCKER_SCRIPTS_DIR}/add_user_group.sh && \
+    ln -s ${DOCKER_SCRIPTS_DIR}/docker_entrypoint.sh /usr/local/bin/ && \
+    chown root:root ${BASE_WORK_DIR} && \
+    chmod 775 ${BASE_WORK_DIR} && \
+    mkdir -m 750 -p ${WORK_DIR} && \
+    chown -R dockerapp:dockerapp ${WORK_DIR}
+
+COPY --from=frontend_builder --chown=dockerapp:dockerapp /home/app/dist ${WORK_DIR}/html/
+COPY --chown=root:root ./frontend/nginx /etc/nginx/
+RUN envsubst '\$WORK_DIR' < /etc/nginx/nginx.template > /etc/nginx/nginx.conf && \
+    chown dockerapp:dockerapp /etc/nginx/nginx.conf && \
+    chmod 440 /etc/nginx/nginx.conf && \
+    mkdir -m 750 -p ${WORK_DIR}/tmp && \
+    chown dockerapp:dockerapp ${WORK_DIR}/tmp
+
+USER dockerapp
+
+EXPOSE 4200
+ENTRYPOINT [ "docker_entrypoint.sh", "nginx" ]
+CMD [ "-g", "daemon off;" ]

@@ -1,0 +1,57 @@
+version: "3.4"
+x-volumes:
+    &default-volumes
+    - "iris_model_vol:/home/app/model"
+x-cap-drop:
+    &default-cap-drop
+    - CHOWN
+    - DAC_OVERRIDE
+    - FOWNER
+x-security-opt:
+    &default-security-opt
+    - seccomp:"./security/seccomp_profile.json"
+
+services:
+    iris_frontend:
+        build:
+            context: .
+            dockerfile: Dockerfile.frontend
+            target: frontend
+        ports:
+            - "4200:4200"
+        depends_on:
+            - iris_prediction
+        networks:
+            default:
+                aliases:
+                    - frontend
+        cap_drop: *default-cap-drop
+        security_opt: *default-security-opt
+    iris_prediction:
+        build:
+            context: .
+            dockerfile: Dockerfile.model
+            target: predictor
+        ports:
+            - "5000:5000"
+        depends_on:
+            - iris_training
+        volumes: *default-volumes
+        networks:
+            default:
+                aliases:
+                    - rest-api
+        cap_drop: *default-cap-drop
+        security_opt: *default-security-opt
+    iris_training:
+        build:
+            context: .
+            dockerfile: Dockerfile.model
+            target: trainer
+        volumes: *default-volumes
+        cap_drop: *default-cap-drop
+        security_opt: *default-security-opt
+volumes:
+    iris_model_vol:
+networks:
+    default:
