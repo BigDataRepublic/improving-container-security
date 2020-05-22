@@ -7,7 +7,7 @@ ENV DOCKER_SCRIPTS_DIR=/var/docker_scripts
 
 WORKDIR ${WORK_DIR}
 
-COPY --chown=root:root ./security/docker_entrypoint.sh ./security/add_user_group.sh ${DOCKER_SCRIPTS_DIR}/
+COPY --chown=root:root ./security/entrypoint/docker_entrypoint.sh ./security/user/add_user_group.sh ${DOCKER_SCRIPTS_DIR}/
 RUN chmod 555 ${DOCKER_SCRIPTS_DIR}/* && \
     ${DOCKER_SCRIPTS_DIR}/add_user_group.sh && \
     rm ${DOCKER_SCRIPTS_DIR}/add_user_group.sh && \

@@ -9,7 +9,7 @@ x-cap-drop:
     - FOWNER
 x-security-opt:
     &default-security-opt
-    - seccomp:"./security/seccomp_profile.json"
+    - seccomp:"./security/seccomp-profile/seccomp_profile.json"
 
 services:
     iris_frontend:
