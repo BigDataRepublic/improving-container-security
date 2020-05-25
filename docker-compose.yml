@@ -20,14 +20,14 @@ services:
         ports:
             - "4200:4200"
         depends_on:
-            - iris_prediction
+            - iris_predictor
         networks:
             default:
                 aliases:
                     - frontend
         cap_drop: *default-cap-drop
         security_opt: *default-security-opt
-    iris_prediction:
+    iris_predictor:
         build:
             context: .
             dockerfile: Dockerfile.model
@@ -35,7 +35,7 @@ services:
         ports:
             - "5000:5000"
         depends_on:
-            - iris_training
+            - iris_trainer
         volumes: *default-volumes
         networks:
             default:
@@ -43,7 +43,7 @@ services:
                     - rest-api
         cap_drop: *default-cap-drop
         security_opt: *default-security-opt
-    iris_training:
+    iris_trainer:
         build:
             context: .
             dockerfile: Dockerfile.model
